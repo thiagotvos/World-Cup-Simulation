@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass
 from itertools import combinations
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 import numpy as np
 
-from .data import TeamProfile, TournamentConfig, normalize_team_name
+from .data import MatchRecord, TeamProfile, TournamentConfig, normalize_team_name
 from .features import FeatureEncoder, TeamState
 from .model import ModelBundle, sample_scoreline
 
@@ -130,13 +130,6 @@ def simulate_match(
     home_team: str | None = None,
     away_team: str | None = None,
 ) -> tuple[MatchTimelineEntry, int, int]:
-    context = {
-        "competition": "world cup",
-        "stage": stage,
-        "attrs": {},
-    }
-    from .data import MatchRecord
-
     match = MatchRecord(
         team_home=home_team or home_state.team,
         team_away=away_team or away_state.team,

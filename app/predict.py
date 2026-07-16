@@ -4,12 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
-
-import numpy as np
 
 from .data import MatchRecord, TeamProfile, normalize_team_name
-from .features import FeatureEncoder, TeamState
+from .features import TeamState
 from .model import ModelBundle
 
 

@@ -10,6 +10,8 @@ This project builds a deep-learning-based World Cup prediction pipeline for the 
 - `docs/system_architecture.md`
 - `docs/tasks.md`
 - `docs/evaluation_plan.md`
+- `docs/data_guide.md` — plain-language overview of the data sources, for non-technical readers
+- `docs/model_guide.md` — plain-language overview of how the model reaches a prediction, for non-technical readers
 
 ## Final Project Scope
 
@@ -22,15 +24,14 @@ The final system has four fixed stages:
 
 ## Baselines
 
-The project also includes a sportsbook-odds baseline. Publicly available sportsbook odds are converted into implied probabilities and used as a comparison point for the MLP predictions.
+The project also includes a sportsbook-odds and real-xG baseline, evaluated against the actual 2026 World Cup matches (see `app/evaluate.py`). Publicly available sportsbook odds are converted into implied probabilities and used as a comparison point for the MLP predictions.
 
 ## Final Deliverables
 
 - A trained MLP classifier for match outcome prediction
 - A tournament simulator that produces World Cup advancement probabilities and score-by-score results
-- Plots and tables showing model performance
+- A comparison against sportsbook-odds and real expected-goals baselines
 - A written explanation of the features, model, and simulation procedure
-- A comparison against sportsbook-odds baselines
 
 ## How To Run
 
@@ -40,28 +41,35 @@ The project also includes a sportsbook-odds baseline. Publicly available sportsb
 python -m app.train --matches data/raw/matches.csv --profiles data/raw/team_profiles.csv --output model/saved_model
 ```
 
-If you do not have a profiles file, omit the `--profiles` argument.
-
 ### 2. Run the web application
 
 ```bash
 python -m app.app
 ```
 
-Then open the local server in your browser.
+Then open the local server in your browser. The app already ships with the real 2026 group draw, team flags, and a trained model, so it runs end to end out of the box.
 
 ### 3. Simulate from the command line
 
 ```bash
-python -m app.simulate --model-dir model/saved_model --runs 1
+python -m app.simulate --model-dir model/saved_model --tournament data/raw/tournament.json --profiles data/raw/team_profiles.csv --runs 1
 ```
+
+Add `--runs 200` to run a Monte Carlo estimate (advancement/championship probabilities averaged over many simulated tournaments) instead of a single playthrough. A progress line is printed while it runs.
+
+### 4. Evaluate against the sportsbook/xG baseline
+
+```bash
+python -m app.evaluate --model-dir model/saved_model --profiles data/raw/team_profiles.csv
+```
+
+Compares the model's predictions for the already-played 2026 World Cup matches against real sportsbook odds and real expected-goals (xG) data.
 
 ## Project Notes
 
 - The backend loads a saved model and does not retrain on every button click.
 - The frontend sends one request per simulation and renders the matches step by step.
-- The repository includes a demo model in `model/saved_model` so the interface can run immediately.
-- To swap demo teams for real national teams, edit `web/config.js` and provide:
-  - `window.WC_TOURNAMENT` with the actual group draw
-  - `window.WC_TEAM_META` with team names, codes, and optional flag image paths
-- Place flag images under `web/assets/flags/` and reference them from `web/config.js`.
+- Real team data (Elo, FIFA ranking) lives in `data/raw/team_profiles.csv`; the backend falls back to it automatically if a request doesn't provide profiles.
+- The real 2026 group draw and team metadata (flags, codes) live in `web/config.js`.
+- Flag images live under `web/assets/flags/`.
+- `data/raw/fifa/` is a separate, unused exploratory pipeline kept for reference — it was not integrated into the final model.

@@ -9,7 +9,7 @@ from typing import Any
 import numpy as np
 
 from .constants import COMPETITION_CATEGORIES, DEFAULT_HISTORY_WINDOW, STAGE_CATEGORIES
-from .data import MatchRecord, TeamProfile, normalize_key, normalize_team_name, parse_float
+from .data import MatchRecord, TeamProfile, normalize_team_name, parse_float
 
 
 def categorize_stage(value: str) -> str:

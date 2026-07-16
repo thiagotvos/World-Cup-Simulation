@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 import tensorflow as tf
 
-from .data import load_match_records, load_team_profiles, normalize_team_name
+from .data import load_match_records, load_team_profiles
 from .features import FeatureEncoder
 from .model import ModelBundle, StandardScaler, build_model, match_result_probabilities
 

@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import json
 import math
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import tensorflow as tf
 
-from .features import FeatureEncoder, TeamState
+from .features import FeatureEncoder
 
 
 @dataclass

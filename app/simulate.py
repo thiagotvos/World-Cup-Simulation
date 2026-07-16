@@ -6,7 +6,6 @@ import argparse
 import json
 import sys
 import time
-from pathlib import Path
 from typing import Callable
 
 from .data import TeamProfile, TournamentConfig, build_demo_tournament, load_team_profiles, load_tournament_config
