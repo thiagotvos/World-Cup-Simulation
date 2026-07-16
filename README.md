@@ -12,6 +12,7 @@ This project builds a deep-learning-based World Cup prediction pipeline for the 
 - `docs/evaluation_plan.md`
 - `docs/data_guide.md` — plain-language overview of the data sources, for non-technical readers
 - `docs/model_guide.md` — plain-language overview of how the model reaches a prediction, for non-technical readers
+- `docs/metrics_report.md` — how accurate the model is, compared against the sportsbook market and against real historical World Cups
 
 ## Final Project Scope
 
@@ -64,6 +65,14 @@ python -m app.evaluate --model-dir model/saved_model --profiles data/raw/team_pr
 ```
 
 Compares the model's predictions for the already-played 2026 World Cup matches against real sportsbook odds and real expected-goals (xG) data.
+
+### 5. Backtest against real past World Cups
+
+```bash
+python -m app.backtest --model-dir model/saved_model --profiles data/raw/team_profiles.csv
+```
+
+Compares the model's predicted outcome for every official World Cup match from 1930 to 2022 against what actually happened, broken down by edition. See `docs/metrics_report.md` for the write-up, including which editions are genuinely held-out vs. part of training.
 
 ## Project Notes
 
