@@ -66,6 +66,7 @@ const appState = {
   bracketSlots: {},
   liveGroupStandings: {},
   reached: { groups: false, thirds: false, knockout: false, final: false },
+  animating: false,
 };
 
 function wait(ms) {
@@ -102,17 +103,22 @@ function isPhaseDone(currentPhase, pillPhase) {
 }
 
 function refreshPhaseNav() {
+  // Navigation is only safe when nothing is actively animating: both the
+  // phase being left and the phase being entered need to be fully settled,
+  // otherwise a running animation loop keeps mutating DOM the peek just
+  // rebuilt (or replaced) out from under it.
+  const canNavigate = !appState.animating && Boolean(appState.reached[appState.phase]);
   phasePills.forEach((pill) => {
     const pillPhase = pill.dataset.phase;
-    const isReached = appState.reached[pillPhase];
-    pill.disabled = !isReached;
-    pill.classList.toggle("clickable", Boolean(isReached));
+    const enabled = canNavigate && Boolean(appState.reached[pillPhase]);
+    pill.disabled = !enabled;
+    pill.classList.toggle("clickable", enabled);
   });
 }
 
 function goToPhase(phase) {
   const result = appState.result;
-  if (!result || !appState.reached[phase]) {
+  if (!result || appState.animating || !appState.reached[appState.phase] || !appState.reached[phase]) {
     return;
   }
   if (phase === "groups") {
@@ -786,6 +792,7 @@ function resetToIntro() {
   appState.selectedGroupIndex = 0;
   appState.liveGroupStandings = {};
   appState.reached = { groups: false, thirds: false, knockout: false, final: false };
+  appState.animating = false;
   introScreen.classList.remove("is-hidden");
   simulationScreen.classList.add("is-hidden");
   setPhase("groups");
@@ -796,6 +803,7 @@ function resetToIntro() {
 }
 
 async function animateGroupStage(result) {
+  appState.animating = true;
   setPhase("groups");
   stageTitle.textContent = "Group Stage";
   stageText.textContent = "Matches are being simulated in real time, group by group.";
@@ -832,6 +840,7 @@ async function animateGroupStage(result) {
   renderGroupDetails(result.group_results, appState.selectedGroupIndex, true, false);
   renderGroupFeed(result.group_results[appState.selectedGroupIndex]);
   appState.reached.groups = true;
+  appState.animating = false;
   refreshPhaseNav();
   setAdvanceButton("Advance", () => showThirdsStage(result));
 }
@@ -873,6 +882,7 @@ function showThirdsStage(result, isPeek = false) {
 }
 
 async function animateKnockoutStage(result) {
+  appState.animating = true;
   appState.phase = "knockout";
   appState.actualPhase = "knockout";
   setPhase("knockout");
@@ -917,6 +927,7 @@ async function animateKnockoutStage(result) {
   stageText.textContent = "The finalists are ready. Press Play Final to start the minute-by-minute simulation.";
   setStatus("Semifinals complete. Press Play Final to begin.");
   appState.reached.knockout = true;
+  appState.animating = false;
   refreshPhaseNav();
   setAdvanceButton("Play Final", () => animateFinalMatch(result, grouped));
 }
@@ -1056,6 +1067,8 @@ async function animateFinalMatch(result, grouped) {
     return;
   }
 
+  appState.animating = true;
+  refreshPhaseNav();
   hideAdvanceButton();
   setStatus("Final in progress");
   const finalColumn = document.querySelector('[data-stage-column="final"]');
@@ -1134,6 +1147,7 @@ async function animateFinalMatch(result, grouped) {
 
   appState.actualPhase = "final";
   appState.reached.final = true;
+  appState.animating = false;
   refreshPhaseNav();
   setAdvanceButton("Restart Simulation", resetToIntro);
 }
