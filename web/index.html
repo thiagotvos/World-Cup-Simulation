@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>World Cup Prediction</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <section id="introScreen" class="intro-screen">
+      <div class="intro-copy">
+        <h1>World Cup Prediction</h1>
+        <button id="startButton" class="start-button" type="button">Start Simulation</button>
+      </div>
+      <aside class="intro-art" aria-hidden="true">
+        <div class="poster-card">
+          <div class="poster-badge">Men's World Cup</div>
+          <img class="world-cup-logo" src="assets/logos/logo-fifa2026.webp" alt="FIFA World Cup 26 logo" />
+        </div>
+      </aside>
+    </section>
+
+    <section id="simulationScreen" class="simulation-screen is-hidden">
+      <header class="sim-header">
+        <div class="sim-topbar">
+          <div class="sim-copy">
+            <p class="eyebrow">Live Tournament</p>
+            <h2 id="stageTitle">Group Stage</h2>
+            <p id="stageText">The group stage is being simulated in real time.</p>
+          </div>
+          <div class="speed-selector" aria-label="Simulation speed">
+            <span>Speed</span>
+            <div class="speed-buttons">
+              <button class="speed-pill" type="button" data-speed="slow">Slow</button>
+              <button class="speed-pill active" type="button" data-speed="medium">Medium</button>
+              <button class="speed-pill" type="button" data-speed="fast">Fast</button>
+            </div>
+          </div>
+        </div>
+        <div class="phase-track" aria-label="Tournament phases">
+          <div class="phase-pill active" data-phase="groups">Groups</div>
+          <div class="phase-pill" data-phase="thirds">Best Thirds</div>
+          <div class="phase-pill" data-phase="knockout">Knockout</div>
+        </div>
+      </header>
+
+      <section id="stageContent" class="workspace"></section>
+
+      <div class="footer-actions">
+        <button id="advanceButton" class="advance-button is-hidden" type="button">Advance</button>
+        <span id="statusText" class="status-text">Ready to simulate</span>
+      </div>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="script.js?v=third-before-final-1"></script>
+</body>
+</html>

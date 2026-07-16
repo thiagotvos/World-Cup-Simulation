@@ -1,0 +1,44 @@
+{
+  "feature_names": [
+    "elo_diff",
+    "fifa_strength_diff",
+    "recent_points_per_match_diff",
+    "recent_win_rate_diff",
+    "recent_goal_diff_diff",
+    "recent_goals_for_diff",
+    "recent_goals_against_diff",
+    "stage_group",
+    "stage_round_of_32",
+    "stage_round_of_16",
+    "stage_quarterfinal",
+    "stage_semifinal",
+    "stage_final",
+    "stage_friendly",
+    "stage_qualifier",
+    "stage_other",
+    "competition_world_cup",
+    "competition_world_cup_qualifier",
+    "competition_friendly",
+    "competition_tournament",
+    "competition_other"
+  ],
+  "history_window": 5,
+  "stage_categories": [
+    "group",
+    "round_of_32",
+    "round_of_16",
+    "quarterfinal",
+    "semifinal",
+    "final",
+    "friendly",
+    "qualifier",
+    "other"
+  ],
+  "competition_categories": [
+    "world_cup",
+    "world_cup_qualifier",
+    "friendly",
+    "tournament",
+    "other"
+  ]
+}
