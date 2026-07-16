@@ -46,7 +46,7 @@ The system repeats steps 1-5 for every match needed to complete the tournament:
 3. Each knockout round, one at a time, using the actual winners from the previous round
 4. The final (with the extra minute-by-minute animation and, if needed, extra time and penalties)
 
-Because each team's "recent form" updates after every simulated match, the system's read on a team can shift slightly as the tournament goes on — similar to how a team's form and confidence can shift over a real tournament.
+Each team starts the tournament with its actual recent real-world form already factored in, rather than a blank slate — and that "recent form" keeps updating after every simulated match, so the system's read on a team can shift slightly as the tournament goes on, similar to how a team's form and confidence can shift over a real tournament. Starting from real form (instead of nothing) also keeps a single early upset from being read as "this team suddenly forgot how to play," the way it would if the system had no prior read on them at all.
 
 ## How we know if it's any good
 
