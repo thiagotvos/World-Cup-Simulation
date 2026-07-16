@@ -79,6 +79,8 @@ Compares the model's predicted outcome for every official World Cup match from 1
 - The backend loads a saved model and does not retrain on every button click.
 - The frontend sends one request per simulation and renders the matches step by step.
 - Real team data (Elo, FIFA ranking) lives in `data/raw/team_profiles.csv`; the backend falls back to it automatically if a request doesn't provide profiles.
+- Each simulated tournament seeds every team's recent-form history from its real last matches in `data/raw/matches.csv` (see `app.data.load_recent_form`), instead of starting from a blank slate. This keeps a single early upset from snowballing into an unrealistic collapse over the rest of the tournament.
+- The round of 32 is built from the real, fixed 2026 bracket template (`app.simulation._ROUND_OF_32_TEMPLATE`): group winners never meet another winner, third-placed teams always face a group winner and never a side from their own group.
 - The real 2026 group draw and team metadata (flags, codes) live in `web/config.js`.
 - Flag images live under `web/assets/flags/`.
 - `data/raw/fifa/` is a separate, unused exploratory pipeline kept for reference — it was not integrated into the final model.
