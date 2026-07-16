@@ -92,13 +92,28 @@ def _sort_standings(rows: list[StandingRow]) -> list[StandingRow]:
     )
 
 
+def _seed_recent_form(
+    state: TeamState,
+    team_key: str,
+    recent_form: dict[str, list[tuple[int, int]]] | None,
+) -> None:
+    if not recent_form:
+        return
+    for goals_for, goals_against in recent_form.get(team_key, []):
+        state.apply_match(goals_for, goals_against)
+
+
 def _build_team_states(
     profiles: dict[str, TeamProfile] | None,
     encoder: FeatureEncoder,
+    recent_form: dict[str, list[tuple[int, int]]] | None = None,
 ) -> dict[str, TeamState]:
     states: dict[str, TeamState] = {}
     for name, profile in (profiles or {}).items():
-        states[normalize_team_name(name)] = TeamState.from_profile(profile, history_window=encoder.history_window)
+        key = normalize_team_name(name)
+        state = TeamState.from_profile(profile, history_window=encoder.history_window)
+        _seed_recent_form(state, key, recent_form)
+        states[key] = state
     return states
 
 
@@ -107,12 +122,14 @@ def _get_state(
     team_name: str,
     profiles: dict[str, TeamProfile] | None,
     encoder: FeatureEncoder,
+    recent_form: dict[str, list[tuple[int, int]]] | None = None,
 ) -> TeamState:
     key = normalize_team_name(team_name)
     if key not in states:
         profile = (profiles or {}).get(key)
         state = TeamState.from_profile(profile, history_window=encoder.history_window)
         state.team = team_name
+        _seed_recent_form(state, key, recent_form)
         states[key] = state
     if not states[key].team:
         states[key].team = team_name
@@ -222,8 +239,9 @@ def simulate_group_stage(
     tournament: TournamentConfig,
     team_profiles: dict[str, TeamProfile] | None,
     rng: np.random.Generator,
+    recent_form: dict[str, list[tuple[int, int]]] | None = None,
 ) -> tuple[list[GroupResult], dict[str, TeamState], list[MatchTimelineEntry]]:
-    states = _build_team_states(team_profiles, bundle.encoder)
+    states = _build_team_states(team_profiles, bundle.encoder, recent_form)
     timeline: list[MatchTimelineEntry] = []
     results: list[GroupResult] = []
 
@@ -233,8 +251,8 @@ def simulate_group_stage(
         for home_index, away_index in combinations(range(len(teams)), 2):
             home_team = teams[home_index]
             away_team = teams[away_index]
-            home_state = _get_state(states, home_team, team_profiles, bundle.encoder)
-            away_state = _get_state(states, away_team, team_profiles, bundle.encoder)
+            home_state = _get_state(states, home_team, team_profiles, bundle.encoder, recent_form)
+            away_state = _get_state(states, away_team, team_profiles, bundle.encoder, recent_form)
             entry, home_goals, away_goals = simulate_match(
                 bundle=bundle,
                 home_state=home_state,
@@ -277,6 +295,7 @@ def simulate_knockout_round(
     team_profiles: dict[str, TeamProfile] | None,
     rng: np.random.Generator,
     round_name: str,
+    recent_form: dict[str, list[tuple[int, int]]] | None = None,
 ) -> tuple[list[MatchTimelineEntry], list[str], list[str]]:
     entries: list[MatchTimelineEntry] = []
     winners: list[str] = []
@@ -284,8 +303,8 @@ def simulate_knockout_round(
     for index in range(0, len(entrants), 2):
         home_team = entrants[index]
         away_team = entrants[index + 1]
-        home_state = _get_state(states, home_team, team_profiles, bundle.encoder)
-        away_state = _get_state(states, away_team, team_profiles, bundle.encoder)
+        home_state = _get_state(states, home_team, team_profiles, bundle.encoder, recent_form)
+        away_state = _get_state(states, away_team, team_profiles, bundle.encoder, recent_form)
         entry, home_goals, away_goals = simulate_match(
             bundle=bundle,
             home_state=home_state,
@@ -310,9 +329,10 @@ def simulate_single_tournament(
     tournament: TournamentConfig,
     team_profiles: dict[str, TeamProfile] | None = None,
     seed: int | None = None,
+    recent_form: dict[str, list[tuple[int, int]]] | None = None,
 ) -> TournamentSimulationResult:
     rng = np.random.default_rng(seed)
-    group_results, states, timeline = simulate_group_stage(bundle, tournament, team_profiles, rng)
+    group_results, states, timeline = simulate_group_stage(bundle, tournament, team_profiles, rng, recent_form)
     best_third = select_best_third_placed(group_results, count=8)
     best_third_names = [row.team for row in best_third]
     entrants = build_round_of_32_entrants(group_results, best_third)
@@ -330,6 +350,7 @@ def simulate_single_tournament(
             team_profiles=team_profiles,
             rng=rng,
             round_name=round_name,
+            recent_form=recent_form,
         )
         knockout_results.extend(round_entries)
         timeline.extend(round_entries)
@@ -360,6 +381,7 @@ def simulate_single_tournament(
             team_profiles=team_profiles,
             rng=rng,
             round_name="third_place",
+            recent_form=recent_form,
         )
         knockout_results.extend(third_place_entry)
         timeline.extend(third_place_entry)
@@ -383,6 +405,7 @@ def estimate_tournament_outcomes(
     seed: int | None = None,
     runs: int = 100,
     progress_callback: Callable[[int, int], None] | None = None,
+    recent_form: dict[str, list[tuple[int, int]]] | None = None,
 ) -> dict[str, Any]:
     rng = np.random.default_rng(seed)
     champion_counts: dict[str, int] = {}
@@ -393,7 +416,7 @@ def estimate_tournament_outcomes(
     total_runs = max(runs, 1)
     for run_index in range(total_runs):
         result_seed = int(rng.integers(0, 1_000_000_000))
-        result = simulate_single_tournament(bundle, tournament, team_profiles, seed=result_seed)
+        result = simulate_single_tournament(bundle, tournament, team_profiles, seed=result_seed, recent_form=recent_form)
         last_result = result
         champion_counts[result.champion] = champion_counts.get(result.champion, 0) + 1
         if result.runner_up:

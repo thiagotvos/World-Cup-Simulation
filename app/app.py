@@ -116,6 +116,7 @@ def simulate_endpoint():
         tournament=tournament_config,
         team_profiles=team_profiles,
         profiles_csv=profiles_payload if isinstance(profiles_payload, str) else None,
+        matches_csv=str(DEFAULT_TRAIN_FILE),
         runs=runs,
         seed=seed,
     )

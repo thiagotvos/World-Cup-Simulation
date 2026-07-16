@@ -8,7 +8,14 @@ import sys
 import time
 from typing import Callable
 
-from .data import TeamProfile, TournamentConfig, build_demo_tournament, load_team_profiles, load_tournament_config
+from .data import (
+    TeamProfile,
+    TournamentConfig,
+    build_demo_tournament,
+    load_recent_form,
+    load_team_profiles,
+    load_tournament_config,
+)
 from .model import ModelBundle
 from .simulation import estimate_tournament_outcomes, simulate_single_tournament
 
@@ -19,6 +26,7 @@ def simulate_world_cup(
     tournament_json: str | None = None,
     team_profiles: dict[str, TeamProfile] | None = None,
     profiles_csv: str | None = None,
+    matches_csv: str | None = None,
     runs: int = 1,
     seed: int | None = None,
     progress_callback: Callable[[int, int], None] | None = None,
@@ -26,14 +34,20 @@ def simulate_world_cup(
     bundle = ModelBundle.load(model_dir)
     tournament = tournament or load_tournament_config(tournament_json) or build_demo_tournament()
     profiles = team_profiles or load_team_profiles(profiles_csv)
+    recent_form = None
+    if matches_csv:
+        try:
+            recent_form = load_recent_form(matches_csv, history_window=bundle.encoder.history_window)
+        except FileNotFoundError:
+            recent_form = None
     if runs <= 1:
-        result = simulate_single_tournament(bundle, tournament, profiles, seed=seed)
+        result = simulate_single_tournament(bundle, tournament, profiles, seed=seed, recent_form=recent_form)
         return {
             "mode": "single_run",
             "result": result,
         }
     summary = estimate_tournament_outcomes(
-        bundle, tournament, profiles, seed=seed, runs=runs, progress_callback=progress_callback
+        bundle, tournament, profiles, seed=seed, runs=runs, progress_callback=progress_callback, recent_form=recent_form
     )
     return {
         "mode": "monte_carlo",
@@ -61,6 +75,11 @@ def main() -> None:
     parser.add_argument("--model-dir", default="model/saved_model")
     parser.add_argument("--tournament", default=None, help="Optional path to a tournament JSON file.")
     parser.add_argument("--profiles", default=None, help="Optional path to team profiles CSV file.")
+    parser.add_argument(
+        "--matches",
+        default="data/raw/matches.csv",
+        help="Match history CSV used to seed each team's real recent form before kickoff.",
+    )
     parser.add_argument("--runs", type=int, default=1)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
@@ -73,6 +92,7 @@ def main() -> None:
         model_dir=args.model_dir,
         tournament_json=args.tournament,
         profiles_csv=args.profiles,
+        matches_csv=args.matches,
         runs=args.runs,
         seed=args.seed,
         progress_callback=progress_callback,

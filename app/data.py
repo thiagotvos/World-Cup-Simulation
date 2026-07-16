@@ -169,6 +169,29 @@ def load_match_records(csv_path: str | Path) -> list[MatchRecord]:
     return records
 
 
+def load_recent_form(
+    csv_path: str | Path,
+    history_window: int = 5,
+) -> dict[str, list[tuple[int, int]]]:
+    """Return each team's real (goals_for, goals_against) for its last
+    `history_window` matches, oldest first, so a simulated tournament can
+    start from each team's actual current form instead of a blank slate."""
+    records = load_match_records(csv_path)
+    recent: dict[str, list[tuple[int, int]]] = {}
+    for record in records:
+        home_key = normalize_team_name(record.team_home)
+        away_key = normalize_team_name(record.team_away)
+        for key, goals_for, goals_against in (
+            (home_key, record.score_home, record.score_away),
+            (away_key, record.score_away, record.score_home),
+        ):
+            bucket = recent.setdefault(key, [])
+            bucket.append((goals_for, goals_against))
+            if len(bucket) > history_window:
+                bucket.pop(0)
+    return recent
+
+
 def load_team_profiles(csv_path: str | Path | None) -> dict[str, TeamProfile]:
     if not csv_path:
         return {}
