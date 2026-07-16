@@ -280,12 +280,84 @@ def select_best_third_placed(group_results: list[GroupResult], count: int = 8) -
     return _sort_standings(third_placed)[:count]
 
 
+# Fixed Round of 32 bracket template for the 2026-style 12-group, 48-team
+# format: which group position meets which. Group winners never meet
+# another winner in this round, third-placed teams always face a group
+# winner (never a side from their own group), and no team faces a side
+# from its own group. Source: FIFA 2026 World Cup tournament regulations
+# (Round of 32 fixture list).
+_ROUND_OF_32_TEMPLATE = [
+    (("runner_up", "A"), ("runner_up", "B")),
+    (("winner", "E"), ("third", None)),
+    (("winner", "F"), ("runner_up", "C")),
+    (("winner", "C"), ("runner_up", "F")),
+    (("winner", "I"), ("third", None)),
+    (("runner_up", "E"), ("runner_up", "I")),
+    (("winner", "A"), ("third", None)),
+    (("winner", "L"), ("third", None)),
+    (("winner", "D"), ("third", None)),
+    (("winner", "G"), ("third", None)),
+    (("runner_up", "K"), ("runner_up", "L")),
+    (("winner", "H"), ("runner_up", "J")),
+    (("winner", "B"), ("third", None)),
+    (("winner", "J"), ("runner_up", "H")),
+    (("winner", "K"), ("third", None)),
+    (("runner_up", "D"), ("runner_up", "G")),
+]
+
+
+def _assign_thirds_to_slots(third_groups: list[str], winner_slots: list[str]) -> dict[str, str]:
+    """Assign each qualifying third-placed team's group to a "winner vs
+    third" slot such that no slot gets the third-placed team from its own
+    group (they already played in the group stage)."""
+    count = len(winner_slots)
+    for shift in range(count):
+        rotated = third_groups[shift:] + third_groups[:shift]
+        if all(rotated[i] != winner_slots[i] for i in range(count)):
+            return dict(zip(winner_slots, rotated))
+    return dict(zip(winner_slots, third_groups))
+
+
 def build_round_of_32_entrants(group_results: list[GroupResult], best_third: list[StandingRow]) -> list[str]:
-    winners = [result.standings[0].team for result in group_results]
-    runners_up = [result.standings[1].team for result in group_results]
-    thirds = [row.team for row in best_third]
-    entrants = winners + runners_up + thirds
-    return entrants[:32]
+    """Pairs teams using the fixed Round of 32 template (see
+    _ROUND_OF_32_TEMPLATE) instead of just lining up all winners against
+    each other, so the bracket matches how the real tournament avoids top
+    teams meeting too early."""
+    winner_of = {result.group_name: result.standings[0].team for result in group_results if result.standings}
+    runner_up_of = {
+        result.group_name: result.standings[1].team for result in group_results if len(result.standings) > 1
+    }
+    group_of_third_team = {
+        result.standings[2].team: result.group_name for result in group_results if len(result.standings) > 2
+    }
+
+    third_groups_in_rank_order = [group_of_third_team[row.team] for row in best_third if row.team in group_of_third_team]
+    winner_slots_needing_third = [
+        group for side_a, side_b in _ROUND_OF_32_TEMPLATE for kind, group in (side_a, side_b) if kind == "winner"
+        and any(other_kind == "third" for other_kind, _ in (side_a, side_b))
+    ]
+    third_assignment = _assign_thirds_to_slots(third_groups_in_rank_order, winner_slots_needing_third)
+    third_team_of_group = {group: team for team, group in group_of_third_team.items()}
+
+    def resolve(kind: str, group: str | None) -> str:
+        if kind == "winner":
+            return winner_of[group]
+        if kind == "runner_up":
+            return runner_up_of[group]
+        # "third" slots are keyed by the group of the winner they play against,
+        # resolved via third_assignment before this function is called.
+        raise ValueError(f"Unresolved slot kind: {kind}")
+
+    entrants: list[str] = []
+    for side_a, side_b in _ROUND_OF_32_TEMPLATE:
+        for kind, group in (side_a, side_b):
+            if kind == "third":
+                winner_group = side_a[1] if side_a[0] == "winner" else side_b[1]
+                third_group = third_assignment[winner_group]
+                entrants.append(third_team_of_group[third_group])
+            else:
+                entrants.append(resolve(kind, group))
+    return entrants
 
 
 def simulate_knockout_round(
