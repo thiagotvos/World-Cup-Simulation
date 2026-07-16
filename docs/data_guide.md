@@ -49,6 +49,7 @@ A few adjustments were needed to make the data trustworthy:
 - **We fixed team names that were spelled differently across sources** (e.g. "USA" in one dataset and "United States" in another), to make sure the system always recognizes it's the same team.
 - **We found and fixed a connection issue between the website and the prediction system**, which was causing the live demo to ignore each team's strength data entirely. Once fixed, results became much more realistic — favorites winning more often, just like in real football.
 - **We started feeding each team's real recent match history into the simulation**, instead of having every team start the tournament with a blank slate. Without it, a single unlucky early result made a team look far weaker than it really is for its very next match, which was causing too many strong teams to be knocked out together in the group stage.
+- **A known limitation we found and worked around, rather than fully fixed:** our historical match dataset doesn't label which round of a competition each match belongs to (group stage, quarterfinal, final, etc.), so the system never had real examples to learn that knockout football is historically tighter and lower-scoring than an average match. We compensated with a manual adjustment based on real World Cup statistics (see `docs/model_guide.md`), but the more complete fix — going back and labeling each historical match's round — is future work.
 
 ## The end result
 

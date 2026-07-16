@@ -35,7 +35,9 @@ Once the system has the win/draw/loss chances, it randomly draws one specific sc
 
 ## Step 5: Extra time and penalties
 
-For any knockout match (round of 32 onward) that ends level after regular time, the system simulates 30 extra minutes the same way, using a smaller expected-goals number since less time is left to score. If the teams are still level after that, it simulates a penalty shootout, giving a slight edge to whichever team the model considers stronger. Only the final match is shown minute-by-minute with this extra-time sequence on screen; every other knockout match uses the same underlying logic but just displays the final result.
+Real knockout football is tighter than an average match — recent World Cups have averaged around 2.15 goals per knockout match versus roughly 2.6 in the group stage, since the teams that reach this stage are more evenly matched and play more cautiously with elimination on the line. The historical data this system trained on doesn't reliably label which round each match belongs to, so it has no way to learn that difference on its own. To account for it, the system scales down its expected-goals number for any knockout match before playing it out, so results reflect the real tournament's tighter, lower-scoring pattern instead of an average match's.
+
+For any knockout match (round of 32 onward) that ends level after regular time, the system simulates 30 extra minutes the same way, using an even smaller expected-goals number — both because there's less time left to score and because real extra time is famously cagey (only a handful of the last several World Cups' extra-time periods have produced any goal at all). If the teams are still level after that, it simulates a penalty shootout, giving a slight edge to whichever team the model considers stronger. Only the final match is shown minute-by-minute with this extra-time sequence on screen; every other knockout match uses the same underlying logic but just displays the final result.
 
 ## Step 6: Running the whole tournament
 
