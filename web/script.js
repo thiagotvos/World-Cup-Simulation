@@ -55,15 +55,17 @@ const teamMetaConfig = window.WC_TEAM_META || {};
 
 const appState = {
   phase: "intro",
+  actualPhase: "intro",
   result: null,
   animateDelay: SPEED_PRESETS.medium,
   speed: "medium",
   advanceHandler: null,
-  groupTrackerElements: [], 
+  groupTrackerElements: [],
   currentGroupIndex: 0,
   selectedGroupIndex: 0,
   bracketSlots: {},
   liveGroupStandings: {},
+  reached: { groups: false, thirds: false, knockout: false, final: false },
 };
 
 function wait(ms) {
@@ -89,13 +91,53 @@ function setPhase(phase) {
   appState.phase = phase;
   phasePills.forEach((pill) => {
     pill.classList.toggle("active", pill.dataset.phase === phase);
-    pill.classList.toggle("done", isPhaseDone(phase, pill.dataset.phase));
+    pill.classList.toggle("done", isPhaseDone(appState.actualPhase, pill.dataset.phase));
   });
+  refreshPhaseNav();
 }
 
 function isPhaseDone(currentPhase, pillPhase) {
   const order = ["groups", "thirds", "knockout"];
   return order.indexOf(pillPhase) < order.indexOf(currentPhase);
+}
+
+function refreshPhaseNav() {
+  phasePills.forEach((pill) => {
+    const pillPhase = pill.dataset.phase;
+    const isReached = appState.reached[pillPhase];
+    pill.disabled = !isReached;
+    pill.classList.toggle("clickable", Boolean(isReached));
+  });
+}
+
+function goToPhase(phase) {
+  const result = appState.result;
+  if (!result || !appState.reached[phase]) {
+    return;
+  }
+  if (phase === "groups") {
+    showGroupsSnapshot(result);
+  } else if (phase === "thirds") {
+    showThirdsStage(result, true);
+  } else if (phase === "knockout") {
+    showKnockoutSnapshot(result);
+  }
+}
+
+function resumeActualPhase() {
+  const result = appState.result;
+  if (!result) {
+    return;
+  }
+  if (appState.actualPhase === "knockout" || appState.actualPhase === "final") {
+    showKnockoutSnapshot(result);
+  } else if (appState.actualPhase === "thirds") {
+    // Not a peek: thirds is still the true current phase, so restore the
+    // normal forward-progressing button instead of another "Continue".
+    showThirdsStage(result, false);
+  } else {
+    showGroupsSnapshot(result);
+  }
 }
 
 function showSimulationScreen() {
@@ -738,10 +780,12 @@ function updateChampionPanel(result) {
 
 function resetToIntro() {
   appState.phase = "intro";
+  appState.actualPhase = "intro";
   appState.result = null;
   appState.currentGroupIndex = 0;
   appState.selectedGroupIndex = 0;
   appState.liveGroupStandings = {};
+  appState.reached = { groups: false, thirds: false, knockout: false, final: false };
   introScreen.classList.remove("is-hidden");
   simulationScreen.classList.add("is-hidden");
   setPhase("groups");
@@ -787,22 +831,50 @@ async function animateGroupStage(result) {
   appState.selectedGroupIndex = result.group_results.length - 1;
   renderGroupDetails(result.group_results, appState.selectedGroupIndex, true, false);
   renderGroupFeed(result.group_results[appState.selectedGroupIndex]);
+  appState.reached.groups = true;
+  refreshPhaseNav();
   setAdvanceButton("Advance", () => showThirdsStage(result));
 }
 
-function showThirdsStage(result) {
-  appState.phase = "thirds";
+function showGroupsSnapshot(result) {
+  setPhase("groups");
+  stageTitle.textContent = "Group Stage";
+  stageText.textContent = "Group stage results.";
+  renderGroupLayout();
+  const matchFeed = document.getElementById("matchFeed");
+  result.group_results.forEach((group) => {
+    group.matches.forEach((match) => {
+      matchFeed.appendChild(buildMatchCard(match, "group"));
+    });
+  });
+  appState.selectedGroupIndex = result.group_results.length - 1;
+  renderGroupDetails(result.group_results, appState.selectedGroupIndex, true, false);
+  renderGroupFeed(result.group_results[appState.selectedGroupIndex]);
+  setStatus("Viewing the completed group stage.");
+  setAdvanceButton("Continue", resumeActualPhase);
+}
+
+function showThirdsStage(result, isPeek = false) {
   setPhase("thirds");
   stageTitle.textContent = "Best Thirds";
   stageText.textContent = "The eight strongest third-placed teams are selected here.";
   renderThirdsLayout();
   renderThirdsTable(result);
+  if (isPeek) {
+    setStatus("Viewing the best third-placed teams.");
+    setAdvanceButton("Continue", resumeActualPhase);
+    return;
+  }
+  appState.actualPhase = "thirds";
+  appState.reached.thirds = true;
+  refreshPhaseNav();
   setStatus("Third-place table ready. Advance to the knockout stage.");
   setAdvanceButton("Advance", () => animateKnockoutStage(result));
 }
 
 async function animateKnockoutStage(result) {
   appState.phase = "knockout";
+  appState.actualPhase = "knockout";
   setPhase("knockout");
   stageTitle.textContent = "Knockout";
   stageText.textContent = "Knockout rounds are simulated first. The final starts when you press Play Final.";
@@ -844,7 +916,58 @@ async function animateKnockoutStage(result) {
   stageTitle.textContent = "Final Ready";
   stageText.textContent = "The finalists are ready. Press Play Final to start the minute-by-minute simulation.";
   setStatus("Semifinals complete. Press Play Final to begin.");
+  appState.reached.knockout = true;
+  refreshPhaseNav();
   setAdvanceButton("Play Final", () => animateFinalMatch(result, grouped));
+}
+
+function showKnockoutSnapshot(result) {
+  setPhase("knockout");
+  renderKnockoutLayout();
+
+  const grouped = groupMatchesByStage(result.knockout_results);
+  for (const stage of KNOCKOUT_STAGES.filter((stage) => stage !== "final")) {
+    const stageMatches = grouped[stage] || [];
+    stageMatches.forEach((match, matchIndex) => {
+      setBracketMatch(stage, matchIndex, match);
+      promoteWinnerToNextStage(stage, matchIndex, match.winner);
+    });
+    document.querySelectorAll(`[data-stage-column="${stage}"]`).forEach((column) => {
+      column.classList.add("done");
+    });
+  }
+
+  const thirdPlaceMatch = grouped.third_place?.[0];
+  if (thirdPlaceMatch) {
+    setBracketTeam("third_place", 0, "home", thirdPlaceMatch.home_team);
+    setBracketTeam("third_place", 0, "away", thirdPlaceMatch.away_team);
+    setBracketMatch("third_place", 0, thirdPlaceMatch);
+  }
+
+  if (appState.reached.final) {
+    const finalMatch = grouped.final?.[0];
+    if (finalMatch) {
+      setBracketTeam("final", 0, "home", finalMatch.home_team, false);
+      setBracketTeam("final", 0, "away", finalMatch.away_team, false);
+      setBracketMatch("final", 0, finalMatch);
+      updateFinalScore(finalMatch.home_goals, finalMatch.away_goals);
+      updateFinalMinute("FT");
+    }
+    const championNode = document.getElementById("championPodiumTeam");
+    if (championNode) {
+      championNode.innerHTML = buildPodiumTeam(result.champion);
+    }
+    document.querySelector('[data-stage-column="final"]')?.classList.add("done");
+    stageTitle.textContent = "Champions";
+    stageText.textContent = "The tournament is complete.";
+    setStatus("Full time.");
+    setAdvanceButton("Restart Simulation", resetToIntro);
+  } else {
+    stageTitle.textContent = "Final Ready";
+    stageText.textContent = "The finalists are ready. Press Play Final to start the minute-by-minute simulation.";
+    setStatus("Semifinals complete. Press Play Final to begin.");
+    setAdvanceButton("Play Final", () => animateFinalMatch(result, grouped));
+  }
 }
 
 async function animateThirdPlaceMatch(grouped) {
@@ -1009,6 +1132,9 @@ async function animateFinalMatch(result, grouped) {
     championNode.innerHTML = buildPodiumTeam(result.champion);
   }
 
+  appState.actualPhase = "final";
+  appState.reached.final = true;
+  refreshPhaseNav();
   setAdvanceButton("Restart Simulation", resetToIntro);
 }
 
@@ -1064,6 +1190,12 @@ startButton.addEventListener("click", runSimulation);
 speedButtons.forEach((button) => {
   button.addEventListener("click", () => {
     setSpeed(button.dataset.speed);
+  });
+});
+
+phasePills.forEach((pill) => {
+  pill.addEventListener("click", () => {
+    goToPhase(pill.dataset.phase);
   });
 });
 
