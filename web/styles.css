@@ -619,8 +619,40 @@ body::before {
 }
 
 .thirds-layout {
-  display: block;
+  display: flex;
   flex: 1;
+  min-height: 0;
+}
+
+.thirds-layout .thirds-card--full {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+}
+
+.thirds-layout #thirdsPanel {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.thirds-layout .stage-panel-head {
+  flex-shrink: 0;
+  margin-bottom: 10px;
+}
+
+.thirds-layout .standings-card {
+  padding: 14px 18px;
+}
+
+.thirds-layout .standings-card h4 {
+  margin-bottom: 6px;
+}
+
+.thirds-layout .thirds-table th,
+.thirds-layout .thirds-table td {
+  padding: 6px 6px;
+  font-size: 0.82rem;
 }
 
 .knockout-layout {

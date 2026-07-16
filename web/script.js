@@ -405,7 +405,7 @@ function renderGroupLayout() {
 }
 
 function renderThirdsLayout() {
-  simulationScreen.classList.remove("groups-mode");
+  simulationScreen.classList.add("groups-mode");
   stageContent.className = "thirds-layout";
   stageContent.innerHTML = `
     <article class="thirds-card thirds-card--full">
