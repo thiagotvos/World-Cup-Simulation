@@ -10,3 +10,6 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# Personal presentation notes (not project deliverables)
+docs/presentation_notes_*.md
