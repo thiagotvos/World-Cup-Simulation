@@ -2,6 +2,8 @@
 
 This project builds a deep-learning-based World Cup prediction pipeline for the men's tournament. It learns from historical match data, predicts scorelines and match outcomes, and simulates the tournament bracket to estimate advancement chances.
 
+**[Presentation slides (Canva)](https://www.canva.com/design/DAHPT4zEU2g/UMoYMoYPv7kf8finxj8c3g/view?utm_content=DAHPT4zEU2g&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h4fe73f5f78#6)**
+
 ## Documentation
 
 - `docs/problem_statement.md`
